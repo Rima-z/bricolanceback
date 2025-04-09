@@ -10,14 +10,14 @@ class ServiceController extends Controller
     //Récupérer tous les services
     public function index()
     {
-        $services = Service::with(['prestataire.portfolio','categorie', 'sousCategorie'])
-            ->with(['commentaires' => function ($query) {
-                $query->whereNotNull('id'); // Charger seulement si des commentaires existent
-            }])
-            ->get();
-
-        return response()->json($services);
+        return Service::with([
+            'prestataire.client', 
+            'categorie', 
+            'sousCategorie',
+            'commentaires'
+        ])->get();
     }
+    
 
     //Ajouter un nouveau service
 
@@ -61,20 +61,24 @@ class ServiceController extends Controller
     //Récupérer un service spécifique
 
     public function show($id)
-    {
-        $service = Service::with(['prestataire.portfolio', 'sousCategorie', 'categorie'])
-            ->with(['commentaires' => function ($query) {
-                $query->whereNotNull('id'); // Charger seulement si des commentaires existent
-            }])
-            ->find($id);
+{
+    $service = Service::with([
+            'prestataire.client:email,id', // Ajout du client associé au prestataire
+            'prestataire.portfolio', 
+            'sousCategorie', 
+            'categorie'
+        ])
+        ->with(['commentaires' => function ($query) {
+            $query->whereNotNull('id');
+        }])
+        ->find($id);
 
-        if (!$service) {
-            return response()->json(['message' => 'Service non trouvé'], 404);
-        }
-
-        return response()->json($service);
+    if (!$service) {
+        return response()->json(['message' => 'Service non trouvé'], 404);
     }
 
+    return response()->json($service);
+}
 
     //modifier un service
 

@@ -19,17 +19,31 @@ class AuthController extends Controller
     {
         $credentials = $request->only('email', 'password');
 
-        if (!$token = JWTAuth::attempt($credentials)) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
+        try {
+            if (!$token = JWTAuth::attempt($credentials)) {
+                return response()->json(['error' => 'Identifiants invalides'], 401);
+            }
 
-        return response()->json(['token' => $token]);
+            // Récupérer l'utilisateur authentifié
+            $user = Auth::user();
+
+            // Retourner le token JWT
+            return response()->json([
+                'message' => 'Connexion réussie',
+                'token' => $token,
+                'user' => $user,
+                'token_type' => 'bearer',
+                'expires_in' => auth()->factory()->getTTL() * 60
+            ]);
+
+        } catch (JWTException $e) {
+            return response()->json(['error' => 'Impossible de créer le token'], 500);
+        }
     }
 
-    // Inscription d'un nouvel utilisateur (optionnel)
+    // Inscription d'un nouvel utilisateur
     public function register(Request $request)
     {
-        // Validation des données d'entrée
         $validatedData = $request->validate([
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
@@ -38,7 +52,7 @@ class AuthController extends Controller
             'region' => 'nullable|string',
             'adresse' => 'required|string',
             'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:client,prestataire', // Assurer que le rôle soit client ou prestataire
+            'role' => 'required|in:client,prestataire',
         ]);
 
         try {
@@ -63,13 +77,11 @@ class AuthController extends Controller
             $prestataire = null;
             $portfolio = null;
 
-            // Si le rôle est "prestataire", ajouter également en tant que prestataire
             if ($validatedData['role'] === 'prestataire') {
                 $prestataire = PrestataireService::create([
-                    'client_id' => $client->id, // Associer le prestataire au client
+                    'client_id' => $client->id,
                 ]);
 
-                // Ajouter automatiquement un portfolio pour le prestataire
                 $portfolio = Portfolio::create([
                     'prestataire_id' => $prestataire->id,
                     'description' => 'Portfolio par défaut',
@@ -80,7 +92,6 @@ class AuthController extends Controller
             // Générer un token JWT pour l'utilisateur
             $token = JWTAuth::fromUser($user);
 
-            // Retourner la réponse JSON
             return response()->json([
                 'message' => 'Utilisateur enregistré avec succès',
                 'user' => $user,
@@ -91,49 +102,62 @@ class AuthController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            // Gestion des erreurs
             return response()->json([
-                'error' => 'Une erreur est survenue lors de l\'inscription.',
+                'error' => 'Erreur lors de l\'inscription',
                 'message' => $e->getMessage(),
             ], 500);
         }
     }
 
-    public function render($request, Throwable $exception)
-    {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'error' => $exception->getMessage(),
-            ], 500);
-        }
-
-        return parent::render($request, $exception);
-    }
-
-
     // Récupérer l'utilisateur authentifié
     public function me()
 {
-    $user = auth()->user();
-    $client = Client::where('email', $user->email)->first();
+    try {
+        $user = auth()->userOrFail();
+        
+        // Charge la relation client si elle existe
+        $user->load('client');
+        
+        return response()->json([
+            'user' => $user->only(['id', 'name', 'email', 'role']),
+            'client' => $user->client ? $user->client->only([
+                'id', 'nom', 'prenom', 'email', 'num_tlf', 'region', 'adresse'
+            ]) : null
+        ]);
 
-    return response()->json([
-        'user' => $user,
-        'client' => $client
-    ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Unauthorized',
+            'message' => $e->getMessage()
+        ], 401);
+    }
 }
 
-    // Déconnexion et invalidation du token
+    // Déconnexion
     public function logout()
     {
         try {
-            // Supprimer le token actuel sans l'invalider
             auth()->logout();
-
             return response()->json(['message' => 'Déconnexion réussie']);
+
         } catch (JWTException $e) {
             return response()->json(['error' => 'Erreur lors de la déconnexion'], 500);
         }
     }
 
+    // Rafraîchir le token
+    public function refresh()
+    {
+        try {
+            $newToken = auth()->refresh();
+            return response()->json([
+                'token' => $newToken,
+                'token_type' => 'bearer',
+                'expires_in' => auth()->factory()->getTTL() * 60
+            ]);
+
+        } catch (JWTException $e) {
+            return response()->json(['error' => 'Impossible de rafraîchir le token'], 500);
+        }
+    }
 }
