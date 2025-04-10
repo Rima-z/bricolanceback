@@ -23,6 +23,10 @@ Route::prefix('auth')->middleware('api')->group(function () {
     Route::post('/register', [\App\Http\Controllers\AuthController::class, 'register']);
     Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
     Route::get('/me', [\App\Http\Controllers\AuthController::class, 'me']);
+    Route::put('/profile/update', [\App\Http\Controllers\AuthController::class, 'updateProfile']);
+    Route::get('/prestataire/services', [\App\Http\Controllers\ServiceController::class, 'getByPrestataire']);
+    
+  
 });
 // Routes pour Administrateur
 Route::get('/admins', [\App\Http\Controllers\AdministrateurController::class, 'index']);
@@ -38,6 +42,7 @@ Route::middleware(['auth:api', 'is_prestataire'])->post('/services', [\App\Http\
 Route::get('/services/{id}', [\App\Http\Controllers\ServiceController::class, 'show']);
 Route::middleware(['auth:api', 'is_prestataire'])->put('/services/{id}', [\App\Http\Controllers\ServiceController::class, 'update']);
 Route::middleware(['auth:api', 'is_prestataire'])->delete('/services/{id}', [\App\Http\Controllers\ServiceController::class, 'destroy']);
+
 
 // Routes pour Catégories
 Route::get('/categories', [\App\Http\Controllers\CategorieController::class, 'index']);

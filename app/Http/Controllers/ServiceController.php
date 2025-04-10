@@ -122,4 +122,28 @@ class ServiceController extends Controller
 
         return response()->json(['message' => 'Service supprimé avec succès'], 200);
     }
+    
+    // Ajoutez cette nouvelle méthode
+public function getByPrestataire(Request $request)
+{
+    try {
+        $user = auth()->userOrFail();
+        
+        if (!$user->client || !$user->client->prestataire) {
+            return response()->json(['message' => 'Prestataire non trouvé'], 404);
+        }
+
+        $services = Service::with(['categorie', 'sousCategorie', 'portfolio'])
+            ->where('prestataire_id', $user->client->prestataire->id)
+            ->get();
+
+        return response()->json($services);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Erreur lors de la récupération des services',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
 }

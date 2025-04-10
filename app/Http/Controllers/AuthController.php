@@ -167,4 +167,54 @@ class AuthController extends Controller
             return response()->json(['error' => 'Impossible de rafraîchir le token'], 500);
         }
     }
+    // Mettre à jour le profil
+public function updateProfile(Request $request)
+{
+    try {
+        $user = auth()->userOrFail();
+        
+        $validatedData = $request->validate([
+            'nom' => 'required|string|max:255',
+            'prenom' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,'.$user->id,
+            'num_tlf' => 'required|string|max:20',
+            'region' => 'nullable|string',
+            'adresse' => 'required|string',
+        ]);
+
+        // Mise à jour du client associé
+        if ($user->client) {
+            $user->client->update([
+                'nom' => $validatedData['nom'],
+                'prenom' => $validatedData['prenom'],
+                'email' => $validatedData['email'],
+                'num_tlf' => $validatedData['num_tlf'],
+                'region' => $validatedData['region'],
+                'adresse' => $validatedData['adresse'],
+            ]);
+        }
+
+        // Mise à jour de l'utilisateur
+        $user->update([
+            'name' => $validatedData['nom'] . ' ' . $validatedData['prenom'],
+            'email' => $validatedData['email'],
+        ]);
+
+        return response()->json([
+            'message' => 'Profil mis à jour avec succès',
+            'user' => $user,
+            'client' => $user->client
+        ]);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => 'Erreur lors de la mise à jour du profil',
+            'message' => $e->getMessage()
+        ], 500);
+    }
+}
+
+
+
+    
 }
