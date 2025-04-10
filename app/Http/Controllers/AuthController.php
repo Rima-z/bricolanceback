@@ -111,28 +111,35 @@ class AuthController extends Controller
 
     // Récupérer l'utilisateur authentifié
     public function me()
-{
-    try {
-        $user = auth()->userOrFail();
-        
-        // Charge la relation client si elle existe
-        $user->load('client');
-        
-        return response()->json([
-            'user' => $user->only(['id', 'name', 'email', 'role']),
-            'client' => $user->client ? $user->client->only([
-                'id', 'nom', 'prenom', 'email', 'num_tlf', 'region', 'adresse'
-            ]) : null
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => 'Unauthorized',
-            'message' => $e->getMessage()
-        ], 401);
+    {
+        try {
+            $user = auth()->userOrFail();
+            
+            return response()->json([
+                'user' => [
+                    'id' => $user->id,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'name' => $user->name
+                ],
+                'client' => $user->client ? [
+                    'id' => $user->client->id,
+                    'nom' => $user->client->nom,
+                    'prenom' => $user->client->prenom,
+                    'email' => $user->client->email,
+                    'num_tlf' => $user->client->num_tlf,
+                    'region' => $user->client->region,
+                    'adresse' => $user->client->adresse
+                ] : null
+            ]);
+    
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Unauthorized',
+                'message' => $e->getMessage()
+            ], 401);
+        }
     }
-}
-
     // Déconnexion
     public function logout()
     {
