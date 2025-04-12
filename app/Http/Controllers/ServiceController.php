@@ -124,26 +124,43 @@ class ServiceController extends Controller
     }
     
     // Ajoutez cette nouvelle méthode
-public function getByPrestataire(Request $request)
+    public function getByPrestataire(Request $request)
 {
-    try {
-        $user = auth()->userOrFail();
-        
-        if (!$user->client || !$user->client->prestataire) {
-            return response()->json(['message' => 'Prestataire non trouvé'], 404);
-        }
-
-        $services = Service::with(['categorie', 'sousCategorie', 'portfolio'])
-            ->where('prestataire_id', $user->client->prestataire->id)
-            ->get();
-
-        return response()->json($services);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => 'Erreur lors de la récupération des services',
-            'message' => $e->getMessage()
-        ], 500);
+    $user = auth()->user();
+    
+    if (!$user) {
+        return response()->json(['message' => 'Utilisateur non authentifié'], 401);
     }
+
+    // Chargez les relations nécessaires en une seule requête
+    $user->load('client.prestataire.services');
+    
+    if (!$user->client) {
+        return response()->json([
+            'message' => 'Profil client non trouvé',
+            'has_prestataire' => false
+        ], 404);
+    }
+
+    if (!$user->client->prestataire) {
+        return response()->json([
+            'message' => 'Prestataire non trouvé',
+            'has_prestataire' => false
+        ], 404);
+    }
+
+    // Récupérez les services avec toutes les relations nécessaires
+    $services = Service::with(['categorie', 'sousCategorie', 'portfolio'])
+        ->where('prestataire_id', $user->client->prestataire->id)
+        ->get();
+
+    if ($services->isEmpty()) {
+        return response()->json([
+            'message' => 'Aucun service trouvé pour ce prestataire',
+            'services' => []
+        ], 200);
+    }
+
+    return response()->json($services);
 }
 }

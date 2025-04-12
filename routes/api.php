@@ -24,7 +24,9 @@ Route::prefix('auth')->middleware('api')->group(function () {
     Route::post('/logout', [\App\Http\Controllers\AuthController::class, 'logout']);
     Route::get('/me', [\App\Http\Controllers\AuthController::class, 'me']);
     Route::put('/profile/update', [\App\Http\Controllers\AuthController::class, 'updateProfile']);
-    Route::get('/prestataire/services', [\App\Http\Controllers\ServiceController::class, 'getByPrestataire']);
+    
+    Route::middleware('auth:api')->get('/prestataire/services', [\App\Http\Controllers\ServiceController::class, 'getByPrestataire']);
+
     
   
 });
