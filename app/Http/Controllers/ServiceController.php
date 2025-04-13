@@ -20,43 +20,54 @@ class ServiceController extends Controller
     
 
     //Ajouter un nouveau service
-
     public function store(Request $request)
     {
+        // Récupérer l'utilisateur authentifié
+        $user = auth()->user();
+    
+        // Vérifier si l'utilisateur a un prestataire
+        if (!$user->client || !$user->client->prestataire) {
+            return response()->json(['error' => 'Utilisateur non associé à un prestataire'], 400);
+        }
+    
+        // Utiliser l'ID du prestataire de l'utilisateur
+        $prestataire_id = $user->client->prestataire->id;
+    
+        // Valider les autres données
         $validatedData = $request->validate([
-            'prestataire_id' => 'required|exists:prestataire_services,id',
             'prix' => 'required|numeric',
             'description' => 'nullable|string',
             'categorie_id' => 'required|exists:categories,id',
             'sous_categorie_id' => 'required|exists:sous_categories,id',
-            'portfolio_images' => 'required|array',  // ⚡ Champ obligatoire pour les images du portfolio
-            'portfolio_images.*' => 'string', // ⚡ Chaque image doit être une URL ou un chemin de fichier
+            'portfolio_images' => 'required|array',
+            'portfolio_images.*' => 'string',
             'portfolio_description' => 'nullable|string',
         ]);
-
-        // 🔹 1️⃣ Créer un portfolio
+    
+        // Créer un portfolio
         $portfolio = \App\Models\Portfolio::create([
-            'prestataire_id' => $validatedData['prestataire_id'],
+            'prestataire_id' => $prestataire_id,  // Utiliser l'ID du prestataire authentifié
             'images' => $validatedData['portfolio_images'],
             'description' => $validatedData['portfolio_description'] ?? null,
         ]);
-
-        // 🔹 2️⃣ Créer le service avec le portfolio associé
+    
+        // Créer le service
         $service = Service::create([
-            'prestataire_id' => $validatedData['prestataire_id'],
+            'prestataire_id' => $prestataire_id,  // Utiliser l'ID du prestataire authentifié
             'prix' => $validatedData['prix'],
             'description' => $validatedData['description'],
             'categorie_id' => $validatedData['categorie_id'],
             'sous_categorie_id' => $validatedData['sous_categorie_id'],
-            'portfolio_id' => $portfolio->id,  // 🔹 Association du portfolio créé
+            'portfolio_id' => $portfolio->id,  // Associer le portfolio créé
         ]);
-
+    
         return response()->json([
             'message' => 'Service et portfolio créés avec succès',
             'service' => $service,
             'portfolio' => $portfolio
         ], 201);
     }
+    
 
     //Récupérer un service spécifique
 
