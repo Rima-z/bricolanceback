@@ -9,17 +9,27 @@ use Illuminate\Support\Facades\Validator;
 class ServiceController extends Controller
 {
     // Récupérer tous les services
-    public function index()
-    {
-        return Service::with([
-            'prestataire.client', 
-            'categorie', 
-            'sousCategorie',
-            'commentaires',
-            'portfolio'
-        ])->get();
+    public function index(Request $request)
+{
+    $query = Service::with([
+        'prestataire.client', 
+        'categorie', 
+        'sousCategorie',
+        'commentaires',
+        'portfolio'
+    ]);
+
+    // Ajout des filtres
+    if ($request->has('categorie_id')) {
+        $query->where('categorie_id', $request->categorie_id);
     }
-    
+
+    if ($request->has('sous_categorie_id')) {
+        $query->where('sous_categorie_id', $request->sous_categorie_id);
+    }
+
+    return $query->get();
+}
     // Ajouter un nouveau service
     public function store(Request $request)
     {
