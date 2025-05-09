@@ -2,6 +2,8 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DashboardController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -13,6 +15,14 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
+
+// routes/api.php
+Route::get('/dashboard', [DashboardController::class, 'index']);
+Route::get('/dashboard/charts', [DashboardController::class, 'charts']);
+Route::get('/dashboard/cumulative-growth', [DashboardController::class, 'cumulativeGrowth']);
+Route::get('/dashboard/top-categories', [DashboardController::class, 'topCategories']);
+Route::get('/dashboard/top-commented-services', [DashboardController::class, 'topCommentedServices']);
 
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
